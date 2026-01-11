@@ -1,0 +1,12 @@
+services:
+  maat:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MAAT_DB_PATH=/app/data/maat.db
+    volumes:
+      - maat_data:/app/data
+
+volumes:
+  maat_data:

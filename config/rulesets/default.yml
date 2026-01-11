@@ -1,0 +1,36 @@
+# MAAT Ruleset (default)
+# This is a baseline. Replace/override per jurisdiction and judge standing order.
+version: "1.0"
+no_contact:
+  access_requests: false
+  messaging: false
+  follows_or_connects: false
+
+platforms:
+  linkedin:
+    passive_view_public: true
+    notification_risk: "medium"   # medium/high/none
+    allow_if_notification_possible: true
+  facebook:
+    passive_view_public: true
+    notification_risk: "low"
+    allow_if_notification_possible: true
+  x:
+    passive_view_public: true
+    notification_risk: "none"
+    allow_if_notification_possible: true
+
+judge_overrides:
+  # Example:
+  # block_platforms_with_notifications: true
+  block_platforms_with_notifications: false
+
+outputs:
+  vocabulary_firewall: true
+  forbidden_terms:
+    - "diagnose"
+    - "personality type"
+    - "archetype"
+    - "trauma"
+    - "predict"
+    - "verdict prediction"

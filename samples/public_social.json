@@ -1,0 +1,19 @@
+[
+  {
+    "platform": "x",
+    "url": "https://example.com/j1",
+    "public_text": "I believe in personal responsibility and due process.",
+    "tags": [
+      "due_process",
+      "personal_responsibility"
+    ]
+  },
+  {
+    "platform": "facebook",
+    "url": "https://example.com/j2",
+    "public_text": "Corporate harm should be punished.",
+    "tags": [
+      "corporate_accountability"
+    ]
+  }
+]

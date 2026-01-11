@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truth Engine v2.0 - Reality Calibration System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            border-bottom: 2px solid #ff4444;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            color: #ff4444;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #ff4444;
+        }
+
+        .header .subtitle {
+            font-size: 1.2em;
+            color: #cccccc;
+            font-style: italic;
+        }
+
+        .warning-banner {
+            background: linear-gradient(45deg, #ff4444, #cc0000);
+            padding: 15px;
+            margin-bottom: 30px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .input-section {
+            background: rgba(0,0,0,0.3);
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 1px solid #444;
+        }
+
+        .input-section h2 {
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .confession-port {
+            width: 100%;
+            height: 120px;
+            background: #000000;
+            border: 2px solid #ff4444;
+            color: #ffffff;
+            padding: 15px;
+            font-family: inherit;
+            font-size: 1.1em;
+            border-radius: 5px;
+            resize: vertical;
+        }
+
+        .confession-port:focus {
+            outline: none;
+            border-color: #ff6666;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
+        }
+
+        .analyze-btn {
+            background: linear-gradient(45deg, #ff4444, #cc0000);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .analyze-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+        }
+
+        .analysis-output {
+            background: rgba(0,0,0,0.5);
+            border: 2px solid #ff4444;
+            border-radius: 10px;
+            padding: 30px;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .truth-gradient {
+            font-size: 3em;
+            text-align: center;
+            margin-bottom: 30px;
+            font-weight: bold;
+        }
+
+        .gradient-low { color: #ff4444; }
+        .gradient-medium { color: #ffaa44; }
+        .gradient-high { color: #44ff44; }
+
+        .analysis-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 5px;
+            border-left: 4px solid #ff4444;
+        }
+
+        .analysis-section h3 {
+            color: #ff6666;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .analysis-section p {
+            line-height: 1.6;
+            font-size: 1.1em;
+        }
+
+        .bias-detected {
+            background: rgba(255, 68, 68, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #ff4444;
+        }
+
+        .reality-check {
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #ff4444;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .processing-animation {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #ff4444;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .examples {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            border: 1px solid #444;
+        }
+
+        .examples h3 {
+            color: #ff6666;
+            margin-bottom: 15px;
+        }
+
+        .example-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .example-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>TRUTH ENGINE v2.0</h1>
+            <div class="subtitle">REALITY CALIBRATION SYSTEM</div>
+        </div>
+
+        <div class="warning-banner">
+            ⚠️ WARNING: This system delivers unfiltered truth. It will destroy comfortable illusions. ⚠️
+        </div>
+
+        <div class="input-section">
+            <h2>Confession Port</h2>
+            <textarea 
+                class="confession-port" 
+                id="statementInput" 
+                placeholder="Enter your claim, belief, or self-assessment. The Truth Engine will strip away all bullshit and deliver pure reality calibration..."
+            ></textarea>
+            <button class="analyze-btn" onclick="analyzeStatement()">INITIATE TRUTH ANALYSIS</button>
+        </div>
+
+        <div class="processing-animation" id="processingAnimation">
+            <div class="spinner"></div>
+            <h3>DISSECTING DECEPTION...</h3>
+            <p>Scanning for bias patterns...</p>
+        </div>
+
+        <div class="analysis-output" id="analysisOutput">
+            <div class="truth-gradient" id="truthGradient">
+                TRUTH GRADIENT: <span id="gradientScore">0%</span>
+            </div>
+
+            <div class="analysis-section">
+                <h3>EVIDENCE SCANNER RESULTS</h3>
+                <p id="evidenceAnalysis">Analyzing behavioral footprints and reality markers...</p>
+            </div>
+
+            <div class="analysis-section">
+                <h3>BIAS INCINERATOR REPORT</h3>
+                <div id="biasDetection">Scanning for self-deception patterns...</div>
+            </div>
+
+            <div class="analysis-section">
+                <h3>REALITY ANCHORING</h3>
+                <p id="realityAnchor">Cross-referencing against objective baselines...</p>
+            </div>
+
+            <div class="reality-check">
+                <h3>BRUTAL REALITY CHECK</h3>
+                <p id="brutalTruth">Processing truth extraction...</p>
+            </div>
+
+            <div class="analysis-section">
+                <h3>REQUIRED CORRECTION</h3>
+                <p id="correction">Calculating necessary actions...</p>
+            </div>
+        </div>
+
+        <div class="examples">
+            <h3>Test Statements (Click to Auto-Fill)</h3>
+            <div class="example-item" onclick="fillExample('I think I\'m pretty good at my job')">
+                "I think I'm pretty good at my job"
+            </div>
+            <div class="example-item" onclick="fillExample('My relationship is basically healthy')">
+                "My relationship is basically healthy"
+            </div>
+            <div class="example-item" onclick="fillExample('I\'m not that unusual compared to other people')">
+                "I'm not that unusual compared to other people"
+            </div>
+            <div class="example-item" onclick="fillExample('I just need to work harder and things will improve')">
+                "I just need to work harder and things will improve"
+            </div>
+            <div class="example-item" onclick="fillExample('I\'m fine, I don\'t need help')">
+                "I'm fine, I don't need help"
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function fillExample(text) {
+            document.getElementById('statementInput').value = text;
+        }
+
+        function analyzeStatement() {
+            const statement = document.getElementById('statementInput').value.trim();
+            
+            if (!statement) {
+                alert('Enter a statement to analyze.');
+                return;
+            }
+
+            // Show processing animation
+            document.getElementById('processingAnimation').style.display = 'block';
+            document.getElementById('analysisOutput').style.display = 'none';
+
+            // Simulate processing time
+            setTimeout(() => {
+                processStatement(statement);
+            }, 2000);
+        }
+
+        function processStatement(statement) {
+            // Hide processing animation
+            document.getElementById('processingAnimation').style.display = 'none';
+            
+            // Analyze the statement and generate response
+            const analysis = generateAnalysis(statement);
+            
+            // Display results
+            displayResults(analysis);
+        }
+
+        function generateAnalysis(statement) {
+            const lowerStatement = statement.toLowerCase();
+            
+            // Basic pattern matching for demo purposes
+            let truthGradient = 50; // Default
+            let evidenceAnalysis = "";
+            let biasDetection = [];
+            let realityAnchor = "";
+            let brutalTruth = "";
+            let correction = "";
+
+            // Analyze "good at job" statements
+            if (lowerStatement.includes('good at') && lowerStatement.includes('job')) {
+                truthGradient = 35;
+                evidenceAnalysis = "No performance metrics provided. Self-assessment without external validation is unreliable. Most people overestimate their workplace competence by 20-40%.";
+                biasDetection.push("COMPETENCE INFLATION: +28% vs actual performance");
+                biasDetection.push("CONFIRMATION BIAS: Overweighting praise, ignoring strategic gaps");
+                realityAnchor = "Statistical reality: 50% of workers believe they're above average (mathematical impossibility). Your confidence likely exceeds your competence.";
+                brutalTruth = "You're probably mediocre and don't know it. 'Pretty good' is often code for 'adequate enough to not get fired.' Without specific metrics, you're guessing.";
+                correction = "Demand specific performance data. Ask for brutal feedback from 3 colleagues. Set measurable improvement targets.";
+            }
+            
+            // Analyze relationship statements
+            else if (lowerStatement.includes('relationship') && (lowerStatement.includes('healthy') || lowerStatement.includes('fine') || lowerStatement.includes('good'))) {
+                truthGradient = 28;
+                evidenceAnalysis = "Zero behavioral data provided. 'Basically healthy' is hedged language indicating uncertainty. Relationships require active assessment, not default assumptions.";
+                biasDetection.push("ATTACHMENT DISTORTION: Conflating comfort with health");
+                biasDetection.push("FEAR-BASED RATIONALIZATION: Avoiding loneliness > seeking truth");
+                realityAnchor = "70% of people describe relationships as 'fine' within 6 months of major problems emerging. Stability ≠ health.";
+                brutalTruth = "This is likely a convenience arrangement, not a partnership. You're both settling because change is terrifying. The 'health' you perceive is mutual enablement.";
+                correction = "Audit fundamental compatibility. List 3 major compromises each of you makes. Address core issues or accept mediocrity.";
+            }
+            
+            // Analyze "not unusual" statements
+            else if (lowerStatement.includes('not') && (lowerStatement.includes('unusual') || lowerStatement.includes('different') || lowerStatement.includes('normal'))) {
+                truthGradient = 15;
+                evidenceAnalysis = "No comparative data provided. Self-assessment of normalcy is typically defensive. Most unusual people minimize their differences.";
+                biasDetection.push("NORMALIZATION REFLEX: Defensive averaging to avoid standing out");
+                biasDetection.push("SOCIAL CAMOUFLAGE: Adopting herd language to evade rejection");
+                realityAnchor = "True statistical normalcy is rare. If you're questioning your unusualness, you're probably significantly different from baseline.";
+                brutalTruth = "You're lying to yourself. Normal people don't question their normalcy. You're unusual and afraid to own it because being different feels dangerous.";
+                correction = "Stop minimizing your differences. List 5 ways you actually diverge from normal. Embrace the data.";
+            }
+            
+            // Analyze "work harder" statements
+            else if (lowerStatement.includes('work harder') || (lowerStatement.includes('try') && lowerStatement.includes('harder'))) {
+                truthGradient = 22;
+                evidenceAnalysis = "Effort without strategy is often ineffective. 'Working harder' assumes current approach is correct, just under-resourced.";
+                biasDetection.push("EFFORT FALLACY: Equating quantity of work with quality of results");
+                biasDetection.push("CONTROL ILLUSION: Believing effort alone determines outcomes");
+                realityAnchor = "Research shows working smarter beats working harder 73% of the time. Your current approach may be fundamentally flawed.";
+                brutalTruth = "You're probably working hard on the wrong things. More effort in a broken system just produces efficient failure.";
+                correction = "Audit your methods before increasing effort. Identify the 20% of activities producing 80% of results. Eliminate everything else.";
+            }
+            
+            // Analyze "I'm fine" statements
+            else if (lowerStatement.includes('fine') && (lowerStatement.includes('i\'m') || lowerStatement.includes('i am'))) {
+                truthGradient = 18;
+                evidenceAnalysis = "'Fine' is typically code for 'barely functional but maintaining appearance.' People who are actually fine don't announce it defensively.";
+                biasDetection.push("SAFETY PROJECTION: Nervous system denial");
+                biasDetection.push("HELP AVOIDANCE: Maintaining independence narrative despite struggle");
+                realityAnchor = "89% of people say they're 'fine' when experiencing significant distress. It's the most common lie humans tell.";
+                brutalTruth = "You're not fine. You're performing fine-ness. Actually fine people don't need to convince others of their fine-ness.";
+                correction = "Stop performing wellness. Identify 3 specific areas where you're struggling. Ask for help with 1 of them.";
+            }
+            
+            // Default analysis for other statements
+            else {
+                truthGradient = Math.floor(Math.random() * 40) + 20; // 20-60%
+                evidenceAnalysis = "Insufficient data to verify claims. Statement contains subjective assessments without objective anchors.";
+                biasDetection.push("SELF-SERVING BIAS: Interpretation favors ego protection");
+                biasDetection.push("CONFIRMATION BIAS: Selective evidence processing detected");
+                realityAnchor = "Most self-assessments diverge from external reality by 20-50%. Your perception is likely distorted by cognitive biases.";
+                brutalTruth = "Your statement lacks empirical foundation. You're probably believing what you want to believe rather than what the evidence supports.";
+                correction = "Gather objective data before making claims. Test your assumptions against external feedback.";
+            }
+
+            return {
+                truthGradient,
+                evidenceAnalysis,
+                biasDetection,
+                realityAnchor,
+                brutalTruth,
+                correction
+            };
+        }
+
+        function displayResults(analysis) {
+            // Set truth gradient
+            const gradientElement = document.getElementById('gradientScore');
+            const gradientContainer = document.getElementById('truthGradient');
+            
+            gradientElement.textContent = analysis.truthGradient + '%';
+            
+            // Color coding
+            gradientContainer.className = 'truth-gradient ';
+            if (analysis.truthGradient < 30) {
+                gradientContainer.className += 'gradient-low';
+            } else if (analysis.truthGradient < 60) {
+                gradientContainer.className += 'gradient-medium';
+            } else {
+                gradientContainer.className += 'gradient-high';
+            }
+
+            // Set analysis content
+            document.getElementById('evidenceAnalysis').textContent = analysis.evidenceAnalysis;
+            
+            // Display bias detection
+            const biasContainer = document.getElementById('biasDetection');
+            biasContainer.innerHTML = '';
+            analysis.biasDetection.forEach(bias => {
+                const biasDiv = document.createElement('div');
+                biasDiv.className = 'bias-detected';
+                biasDiv.textContent = bias;
+                biasContainer.appendChild(biasDiv);
+            });
+
+            document.getElementById('realityAnchor').textContent = analysis.realityAnchor;
+            document.getElementById('brutalTruth').textContent = analysis.brutalTruth;
+            document.getElementById('correction').textContent = analysis.correction;
+
+            // Show analysis output
+            document.getElementById('analysisOutput').style.display = 'block';
+            
+            // Scroll to results
+            document.getElementById('analysisOutput').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MA'AT Console</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gold-gradient { background: linear-gradient(135deg, #D4AF37 0%, #F4E4BA 50%, #D4AF37 100%); }
+        .dark-bg { background: #0f172a; }
+        .card-bg { background: #1e293b; }
+        .sidebar-bg { background: #1e293b; }
+    </style>
+</head>
+<body class="dark-bg text-gray-100 min-h-screen">
+    <div id="app"></div>
+
+    <script type="module">
+        // =====================================================================
+        // MA'AT Console - Single Page Application
+        // =====================================================================
+        
+        const API_BASE = window.location.origin;
+        
+        // State
+        let state = {
+            user: null,
+            token: localStorage.getItem('maat_token'),
+            currentView: 'dashboard',
+            cases: [],
+            selectedCase: null,
+            users: [],
+            auditLogs: [],
+            loading: false,
+            error: null
+        };
+
+        // =====================================================================
+        // API Client
+        // =====================================================================
+        
+        async function api(method, path, body = null) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (state.token) {
+                headers['Authorization'] = `Bearer ${state.token}`;
+            }
+            
+            const opts = { method, headers };
+            if (body) opts.body = JSON.stringify(body);
+            
+            const res = await fetch(`${API_BASE}${path}`, opts);
+            
+            if (res.status === 401) {
+                logout();
+                throw new Error('Session expired');
+            }
+            
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ detail: 'Request failed' }));
+                throw new Error(err.detail || 'Request failed');
+            }
+            
+            return res.json();
+        }
+
+        async function apiUpload(path, file, artifactType) {
+            const formData = new FormData();
+            formData.append('f', file);
+            
+            const res = await fetch(`${API_BASE}${path}?artifact_type=${artifactType}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${state.token}` },
+                body: formData
+            });
+            
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
+                throw new Error(err.detail || 'Upload failed');
+            }
+            
+            return res.json();
+        }
+
+        // =====================================================================
+        // Auth Functions
+        // =====================================================================
+        
+        async function login(email, password) {
+            state.loading = true;
+            state.error = null;
+            render();
+            
+            try {
+                const data = await api('POST', '/auth/login', { email, password });
+                state.token = data.token;
+                state.user = data;
+                localStorage.setItem('maat_token', data.token);
+                state.currentView = 'dashboard';
+                await loadDashboardData();
+            } catch (e) {
+                state.error = e.message;
+            }
+            
+            state.loading = false;
+            render();
+        }
+
+        function logout() {
+            state.token = null;
+            state.user = null;
+            state.cases = [];
+            state.currentView = 'login';
+            localStorage.removeItem('maat_token');
+            render();
+        }
+
+        async function checkAuth() {
+            if (!state.token) {
+                state.currentView = 'login';
+                return;
+            }
+            
+            try {
+                state.user = await api('GET', '/auth/me');
+                state.currentView = 'dashboard';
+                await loadDashboardData();
+            } catch (e) {
+                logout();
+            }
+        }
+
+        // =====================================================================
+        // Data Loading
+        // =====================================================================
+        
+        async function loadDashboardData() {
+            state.loading = true;
+            render();
+            
+            try {
+                state.cases = await api('GET', '/cases');
+                if (hasPermission('users.read')) {
+                    state.users = await api('GET', '/users');
+                }
+            } catch (e) {
+                state.error = e.message;
+            }
+            
+            state.loading = false;
+            render();
+        }
+
+        async function loadCase(caseId) {
+            state.loading = true;
+            render();
+            
+            try {
+                state.selectedCase = await api('GET', `/cases/${caseId}`);
+                state.currentView = 'case-detail';
+            } catch (e) {
+                state.error = e.message;
+            }
+            
+            state.loading = false;
+            render();
+        }
+
+        async function loadAuditLog() {
+            state.loading = true;
+            render();
+            
+            try {
+                const data = await api('GET', '/audit?limit=50');
+                state.auditLogs = data.logs || [];
+                state.currentView = 'audit';
+            } catch (e) {
+                state.error = e.message;
+            }
+            
+            state.loading = false;
+            render();
+        }
+
+        // =====================================================================
+        // Actions
+        // =====================================================================
+        
+        async function createCase(name, jurisdiction, judge) {
+            state.loading = true;
+            state.error = null;
+            render();
+            
+            try {
+                await api('POST', '/cases', { name, jurisdiction, judge });
+                await loadDashboardData();
+                state.currentView = 'dashboard';
+            } catch (e) {
+                state.error = e.message;
+            }
+            
+            state.loading = false;
+            render();
+        }
+
+        async function uploadArtifact(caseId, file, artifactType) {
+            state.loading = true;
+            state.error = null;
+            render();
+            
+            try {
+                await apiUpload(`/cases/${caseId}/artifacts`, file, artifactType);
+                await loadCase(caseId);
+            } catch (e) {
+                state.error = e.message;
+            }
+            
+            state.loading = false;
+            render();
+        }
+
+        async function generateReport(caseId) {
+            state.loading = true;
+            state.error = null;
+            render();
+            
+            try {
+                await api('POST', `/cases/${caseId}/report`);
+                alert('Report generated successfully!');
+                await loadCase(caseId);
+            } catch (e) {
+                state.error = e.message;
+            }
+            
+            state.loading = false;
+            render();
+        }
+
+        async function createUser(email, password, role, name) {
+            state.loading = true;
+            state.error = null;
+            render();
+            
+            try {
+                await api('POST', '/users', { email, password, role, name });
+                await loadDashboardData();
+                state.currentView = 'users';
+            } catch (e) {
+                state.error = e.message;
+            }
+            
+            state.loading = false;
+            render();
+        }
+
+        // =====================================================================
+        // Permission Helpers
+        // =====================================================================
+        
+        function hasPermission(perm) {
+            if (!state.user) return false;
+            return state.user.permissions && state.user.permissions.includes(perm);
+        }
+
+        // =====================================================================
+        // Render Functions
+        // =====================================================================
+        
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (!state.user) {
+                app.innerHTML = renderLogin();
+            } else {
+                app.innerHTML = renderLayout();
+            }
+            
+            attachEventListeners();
+        }
+
+        function renderLogin() {
+            return `
+                <div class="min-h-screen flex items-center justify-center px-4">
+                    <div class="card-bg rounded-2xl p-8 w-full max-w-md shadow-2xl">
+                        <div class="text-center mb-8">
+                            <div class="gold-gradient text-transparent bg-clip-text text-4xl font-bold mb-2">MA'AT</div>
+                            <p class="text-gray-400">Jury Analysis Console</p>
+                        </div>
+                        
+                        ${state.error ? `<div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4">${state.error}</div>` : ''}
+                        
+                        <form id="login-form" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                                <input type="email" name="email" required
+                                    class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                                <input type="password" name="password" required
+                                    class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent">
+                            </div>
+                            <button type="submit" ${state.loading ? 'disabled' : ''}
+                                class="w-full gold-gradient text-gray-900 font-semibold py-3 rounded-lg hover:opacity-90 transition disabled:opacity-50">
+                                ${state.loading ? 'Signing in...' : 'Sign In'}
+                            </button>
+                        </form>
+                        
+                        <p class="text-center text-gray-500 text-sm mt-6">
+                            Truth weighs the heart
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLayout() {
+            return `
+                <div class="flex min-h-screen">
+                    <!-- Sidebar -->
+                    <aside class="sidebar-bg w-64 flex-shrink-0 border-r border-gray-700">
+                        <div class="p-6">
+                            <div class="gold-gradient text-transparent bg-clip-text text-2xl font-bold">MA'AT</div>
+                            <p class="text-gray-500 text-sm">Console</p>
+                        </div>
+                        
+                        <nav class="px-4 space-y-1">
+                            <a href="#" data-view="dashboard" class="nav-link flex items-center px-4 py-3 rounded-lg ${state.currentView === 'dashboard' ? 'bg-amber-500/20 text-amber-400' : 'text-gray-300 hover:bg-gray-700'}">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                                Dashboard
+                            </a>
+                            <a href="#" data-view="cases" class="nav-link flex items-center px-4 py-3 rounded-lg ${state.currentView === 'cases' || state.currentView === 'case-detail' ? 'bg-amber-500/20 text-amber-400' : 'text-gray-300 hover:bg-gray-700'}">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                                Cases
+                            </a>
+                            ${hasPermission('users.read') ? `
+                            <a href="#" data-view="users" class="nav-link flex items-center px-4 py-3 rounded-lg ${state.currentView === 'users' ? 'bg-amber-500/20 text-amber-400' : 'text-gray-300 hover:bg-gray-700'}">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                                Users
+                            </a>
+                            ` : ''}
+                            ${hasPermission('audit.read') ? `
+                            <a href="#" data-view="audit" class="nav-link flex items-center px-4 py-3 rounded-lg ${state.currentView === 'audit' ? 'bg-amber-500/20 text-amber-400' : 'text-gray-300 hover:bg-gray-700'}">
+                                <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                Audit Log
+                            </a>
+                            ` : ''}
+                        </nav>
+                        
+                        <div class="absolute bottom-0 left-0 w-64 p-4 border-t border-gray-700">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full gold-gradient flex items-center justify-center text-gray-900 font-bold">
+                                    ${state.user?.email?.charAt(0).toUpperCase() || 'U'}
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <p class="text-sm font-medium text-gray-200">${state.user?.email || 'User'}</p>
+                                    <p class="text-xs text-gray-500 capitalize">${state.user?.role || 'role'}</p>
+                                </div>
+                                <button id="logout-btn" class="text-gray-400 hover:text-red-400">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </aside>
+                    
+                    <!-- Main Content -->
+                    <main class="flex-1 p-8 overflow-auto">
+                        ${state.error ? `<div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4">${state.error} <button class="float-right" onclick="state.error=null;render();">&times;</button></div>` : ''}
+                        ${state.loading ? '<div class="text-center py-8"><div class="inline-block animate-spin w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full"></div></div>' : ''}
+                        ${renderMainContent()}
+                    </main>
+                </div>
+            `;
+        }
+
+        function renderMainContent() {
+            switch (state.currentView) {
+                case 'dashboard': return renderDashboard();
+                case 'cases': return renderCases();
+                case 'case-detail': return renderCaseDetail();
+                case 'users': return renderUsers();
+                case 'audit': return renderAudit();
+                case 'new-case': return renderNewCase();
+                case 'new-user': return renderNewUser();
+                default: return renderDashboard();
+            }
+        }
+
+        function renderDashboard() {
+            return `
+                <h1 class="text-2xl font-bold mb-6">Dashboard</h1>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="card-bg rounded-xl p-6">
+                        <div class="text-gray-400 text-sm mb-1">Total Cases</div>
+                        <div class="text-3xl font-bold text-amber-400">${state.cases.length}</div>
+                    </div>
+                    <div class="card-bg rounded-xl p-6">
+                        <div class="text-gray-400 text-sm mb-1">Team Members</div>
+                        <div class="text-3xl font-bold text-amber-400">${state.users.length || '-'}</div>
+                    </div>
+                    <div class="card-bg rounded-xl p-6">
+                        <div class="text-gray-400 text-sm mb-1">Your Role</div>
+                        <div class="text-3xl font-bold text-amber-400 capitalize">${state.user?.role || '-'}</div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Recent Cases</h2>
+                    ${hasPermission('cases.create') ? `<button data-view="new-case" class="nav-link gold-gradient text-gray-900 px-4 py-2 rounded-lg font-medium">+ New Case</button>` : ''}
+                </div>
+                
+                <div class="card-bg rounded-xl overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-800">
+                            <tr>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Name</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Jurisdiction</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Judge</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            ${state.cases.slice(0, 5).map(c => `
+                                <tr class="hover:bg-gray-800/50">
+                                    <td class="px-6 py-4 font-medium">${c.name || c.case_id}</td>
+                                    <td class="px-6 py-4 text-gray-400">${c.jurisdiction || '-'}</td>
+                                    <td class="px-6 py-4 text-gray-400">${c.judge || '-'}</td>
+                                    <td class="px-6 py-4">
+                                        <button data-case-id="${c.case_id}" class="view-case-btn text-amber-400 hover:text-amber-300">View →</button>
+                                    </td>
+                                </tr>
+                            `).join('') || '<tr><td colspan="4" class="px-6 py-8 text-center text-gray-500">No cases yet</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderCases() {
+            return `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold">Cases</h1>
+                    ${hasPermission('cases.create') ? `<button data-view="new-case" class="nav-link gold-gradient text-gray-900 px-4 py-2 rounded-lg font-medium">+ New Case</button>` : ''}
+                </div>
+                
+                <div class="card-bg rounded-xl overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-800">
+                            <tr>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Case ID</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Name</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Jurisdiction</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Judge</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            ${state.cases.map(c => `
+                                <tr class="hover:bg-gray-800/50">
+                                    <td class="px-6 py-4 font-mono text-sm text-gray-400">${c.case_id?.substring(0, 8) || '-'}...</td>
+                                    <td class="px-6 py-4 font-medium">${c.name || '-'}</td>
+                                    <td class="px-6 py-4 text-gray-400">${c.jurisdiction || '-'}</td>
+                                    <td class="px-6 py-4 text-gray-400">${c.judge || '-'}</td>
+                                    <td class="px-6 py-4">
+                                        <button data-case-id="${c.case_id}" class="view-case-btn text-amber-400 hover:text-amber-300">View →</button>
+                                    </td>
+                                </tr>
+                            `).join('') || '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">No cases yet</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderCaseDetail() {
+            const c = state.selectedCase;
+            if (!c) return '<p>Case not found</p>';
+            
+            return `
+                <div class="flex items-center mb-6">
+                    <button data-view="cases" class="nav-link text-gray-400 hover:text-gray-200 mr-4">← Back</button>
+                    <h1 class="text-2xl font-bold">${c.name || 'Case Details'}</h1>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="card-bg rounded-xl p-6">
+                        <div class="text-gray-400 text-sm mb-1">Case ID</div>
+                        <div class="font-mono text-sm">${c.case_id}</div>
+                    </div>
+                    <div class="card-bg rounded-xl p-6">
+                        <div class="text-gray-400 text-sm mb-1">Jurisdiction</div>
+                        <div class="text-lg font-medium">${c.jurisdiction || '-'}</div>
+                    </div>
+                    <div class="card-bg rounded-xl p-6">
+                        <div class="text-gray-400 text-sm mb-1">Judge</div>
+                        <div class="text-lg font-medium">${c.judge || '-'}</div>
+                    </div>
+                </div>
+                
+                <!-- Upload Artifacts -->
+                ${hasPermission('artifacts.upload') ? `
+                <div class="card-bg rounded-xl p-6 mb-6">
+                    <h2 class="text-lg font-semibold mb-4">Upload Artifact</h2>
+                    <form id="upload-form" class="flex flex-wrap gap-4">
+                        <select name="artifact_type" class="px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg">
+                            <option value="transcript">Transcript</option>
+                            <option value="venue">Venue Data</option>
+                            <option value="sjq">SJQ (CSV)</option>
+                            <option value="voir_dire">Voir Dire (JSONL)</option>
+                            <option value="public_records">Public Records</option>
+                            <option value="public_social">Public Social</option>
+                        </select>
+                        <input type="file" name="file" required class="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg">
+                        <button type="submit" class="gold-gradient text-gray-900 px-6 py-2 rounded-lg font-medium">Upload</button>
+                    </form>
+                </div>
+                ` : ''}
+                
+                <!-- Generate Report -->
+                ${hasPermission('reports.generate') ? `
+                <div class="card-bg rounded-xl p-6 mb-6">
+                    <h2 class="text-lg font-semibold mb-4">Generate Report</h2>
+                    <p class="text-gray-400 mb-4">Run analysis on uploaded artifacts and generate a court-safe report with audit packet.</p>
+                    <button id="generate-report-btn" class="gold-gradient text-gray-900 px-6 py-2 rounded-lg font-medium">Generate Report + Audit Packet</button>
+                </div>
+                ` : ''}
+                
+                <!-- Download Links -->
+                <div class="card-bg rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4">Downloads</h2>
+                    <div class="flex gap-4">
+                        <a href="${API_BASE}/cases/${c.case_id}/report/latest" target="_blank" 
+                            class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg">📄 Latest Report</a>
+                        <a href="${API_BASE}/cases/${c.case_id}/audit/latest" target="_blank"
+                            class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg">📦 Audit Packet</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderUsers() {
+            return `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold">Team Members</h1>
+                    ${hasPermission('users.create') ? `<button data-view="new-user" class="nav-link gold-gradient text-gray-900 px-4 py-2 rounded-lg font-medium">+ Add User</button>` : ''}
+                </div>
+                
+                <div class="card-bg rounded-xl overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-800">
+                            <tr>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Name</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Email</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Role</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            ${state.users.map(u => `
+                                <tr class="hover:bg-gray-800/50">
+                                    <td class="px-6 py-4 font-medium">${u.name || '-'}</td>
+                                    <td class="px-6 py-4 text-gray-400">${u.email}</td>
+                                    <td class="px-6 py-4"><span class="px-2 py-1 text-xs rounded-full ${u.role === 'admin' ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-700 text-gray-300'} capitalize">${u.role}</span></td>
+                                </tr>
+                            `).join('') || '<tr><td colspan="3" class="px-6 py-8 text-center text-gray-500">No users found</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderAudit() {
+            return `
+                <h1 class="text-2xl font-bold mb-6">Audit Log</h1>
+                
+                <div class="card-bg rounded-xl overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-gray-800">
+                            <tr>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Time</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">User</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Action</th>
+                                <th class="text-left px-6 py-3 text-xs font-medium text-gray-400 uppercase">Resource</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-700">
+                            ${state.auditLogs.map(log => `
+                                <tr class="hover:bg-gray-800/50">
+                                    <td class="px-6 py-4 text-sm text-gray-400">${new Date(log.created_at).toLocaleString()}</td>
+                                    <td class="px-6 py-4 font-mono text-sm">${log.user_id?.substring(0, 8) || 'system'}...</td>
+                                    <td class="px-6 py-4"><span class="px-2 py-1 text-xs bg-gray-700 rounded">${log.action}</span></td>
+                                    <td class="px-6 py-4 text-gray-400">${log.resource_type || '-'} ${log.resource_id ? log.resource_id.substring(0, 8) + '...' : ''}</td>
+                                </tr>
+                            `).join('') || '<tr><td colspan="4" class="px-6 py-8 text-center text-gray-500">No audit logs</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function renderNewCase() {
+            return `
+                <div class="flex items-center mb-6">
+                    <button data-view="cases" class="nav-link text-gray-400 hover:text-gray-200 mr-4">← Back</button>
+                    <h1 class="text-2xl font-bold">New Case</h1>
+                </div>
+                
+                <div class="card-bg rounded-xl p-6 max-w-xl">
+                    <form id="new-case-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Case Name</label>
+                            <input type="text" name="name" required placeholder="e.g., Smith v. Jones"
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Jurisdiction</label>
+                            <input type="text" name="jurisdiction" required placeholder="e.g., NC, CA, TX"
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Judge (optional)</label>
+                            <input type="text" name="judge" placeholder="e.g., Hon. Williams"
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <button type="submit" class="gold-gradient text-gray-900 font-semibold py-3 px-6 rounded-lg">Create Case</button>
+                    </form>
+                </div>
+            `;
+        }
+
+        function renderNewUser() {
+            return `
+                <div class="flex items-center mb-6">
+                    <button data-view="users" class="nav-link text-gray-400 hover:text-gray-200 mr-4">← Back</button>
+                    <h1 class="text-2xl font-bold">Add Team Member</h1>
+                </div>
+                
+                <div class="card-bg rounded-xl p-6 max-w-xl">
+                    <form id="new-user-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Name</label>
+                            <input type="text" name="name" placeholder="Full name"
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                            <input type="email" name="email" required
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                            <input type="password" name="password" required minlength="8"
+                                class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-amber-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-1">Role</label>
+                            <select name="role" required class="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg">
+                                <option value="viewer">Viewer (read-only)</option>
+                                <option value="analyst">Analyst (upload + analyze)</option>
+                                <option value="attorney">Attorney (manage cases)</option>
+                                <option value="admin">Admin (full access)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="gold-gradient text-gray-900 font-semibold py-3 px-6 rounded-lg">Add User</button>
+                    </form>
+                </div>
+            `;
+        }
+
+        // =====================================================================
+        // Event Listeners
+        // =====================================================================
+        
+        function attachEventListeners() {
+            // Login form
+            document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                await login(form.email.value, form.password.value);
+            });
+            
+            // Logout
+            document.getElementById('logout-btn')?.addEventListener('click', logout);
+            
+            // Navigation
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const view = e.currentTarget.dataset.view;
+                    if (view) {
+                        state.currentView = view;
+                        if (view === 'audit') await loadAuditLog();
+                        else if (view === 'dashboard' || view === 'cases' || view === 'users') await loadDashboardData();
+                        render();
+                    }
+                });
+            });
+            
+            // View case buttons
+            document.querySelectorAll('.view-case-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    await loadCase(btn.dataset.caseId);
+                });
+            });
+            
+            // New case form
+            document.getElementById('new-case-form')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                await createCase(form.name.value, form.jurisdiction.value, form.judge.value);
+            });
+            
+            // New user form
+            document.getElementById('new-user-form')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                await createUser(form.email.value, form.password.value, form.role.value, form.name.value);
+            });
+            
+            // Upload form
+            document.getElementById('upload-form')?.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const file = form.file.files[0];
+                if (file && state.selectedCase) {
+                    await uploadArtifact(state.selectedCase.case_id, file, form.artifact_type.value);
+                }
+            });
+            
+            // Generate report
+            document.getElementById('generate-report-btn')?.addEventListener('click', async () => {
+                if (state.selectedCase) {
+                    await generateReport(state.selectedCase.case_id);
+                }
+            });
+        }
+
+        // =====================================================================
+        // Initialize
+        // =====================================================================
+        
+        checkAuth().then(render);
+    </script>
+</body>
+</html>
