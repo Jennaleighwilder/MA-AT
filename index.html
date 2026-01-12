@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MA'AT - Court-Defensible Jury Analysis Platform</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        :root {
+            --deep-black: #0f172a;
+            --charcoal: #1e293b;
+            --slate: #334155;
+            --silver: #94a3b8;
+            --platinum: #e2e8f0;
+            --white: #ffffff;
+            --gold: #D4AF37;
+            --gold-light: #F4E4BA;
+            --amber: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--deep-black);
+            color: var(--platinum);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.05em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--silver);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover { color: var(--gold); }
+
+        .cta-nav {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+            color: var(--deep-black);
+            padding: 12px 24px;
+            border: none;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            text-decoration: none;
+        }
+
+        .cta-nav:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+        }
+
+        .hero {
+            padding: 140px 0 120px;
+            background: 
+                radial-gradient(ellipse at 30% 20%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(212, 175, 55, 0.05) 0%, transparent 50%),
+                var(--deep-black);
+            position: relative;
+        }
+
+        .hero-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 60px;
+        }
+
+        .hero-content { max-width: 800px; }
+
+        .hero-eyebrow {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 20px;
+        }
+
+        .hero-title {
+            font-size: 72px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 0.95;
+            margin-bottom: 30px;
+            letter-spacing: -0.03em;
+        }
+
+        .hero-subtitle {
+            font-size: 24px;
+            color: var(--platinum);
+            margin-bottom: 20px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .hero-tagline {
+            font-size: 18px;
+            color: var(--silver);
+            margin-bottom: 50px;
+            line-height: 1.6;
+            max-width: 600px;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+            color: var(--deep-black);
+            padding: 18px 36px;
+            border: none;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--platinum);
+            padding: 18px 36px;
+            border: 1px solid var(--slate);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .features {
+            padding: 120px 0;
+            background: var(--charcoal);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 60px;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 80px;
+        }
+
+        .section-eyebrow {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--white);
+            margin-bottom: 20px;
+            letter-spacing: -0.02em;
+        }
+
+        .section-description {
+            font-size: 18px;
+            color: var(--silver);
+            line-height: 1.6;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+        }
+
+        .feature-card {
+            padding: 50px 40px;
+            background: var(--deep-black);
+            border: 1px solid var(--slate);
+            transition: all 0.4s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 40px;
+            margin-bottom: 25px;
+        }
+
+        .feature-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 15px;
+        }
+
+        .feature-description {
+            color: var(--silver);
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        .not-section {
+            padding: 120px 0;
+            background: var(--deep-black);
+        }
+
+        .not-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 60px;
+            align-items: center;
+        }
+
+        .not-content h2 {
+            font-size: 42px;
+            font-weight: 800;
+            color: var(--white);
+            margin-bottom: 30px;
+        }
+
+        .not-list {
+            list-style: none;
+        }
+
+        .not-list li {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--slate);
+            font-size: 18px;
+            color: var(--platinum);
+        }
+
+        .not-list li:last-child { border-bottom: none; }
+
+        .not-icon {
+            font-size: 24px;
+            color: #ef4444;
+        }
+
+        .footer {
+            background: var(--charcoal);
+            color: var(--silver);
+            padding: 80px 0 40px;
+            border-top: 1px solid var(--slate);
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 60px;
+        }
+
+        .footer-main {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 80px;
+            margin-bottom: 60px;
+        }
+
+        .footer-brand { max-width: 400px; }
+
+        .footer-logo {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 50%, var(--gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .footer-tagline {
+            font-size: 16px;
+            color: var(--silver);
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .footer-contact {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .footer-contact a {
+            color: var(--platinum);
+            text-decoration: none;
+            font-size: 15px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-contact a:hover { color: var(--gold); }
+
+        .footer-section h4 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .footer-section ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .footer-section a {
+            color: var(--silver);
+            text-decoration: none;
+            font-size: 15px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section a:hover { color: var(--gold); }
+
+        .footer-bottom {
+            border-top: 1px solid var(--slate);
+            padding-top: 30px;
+            text-align: center;
+            color: var(--silver);
+            font-size: 14px;
+        }
+
+        @media (max-width: 1024px) {
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+            .not-grid { grid-template-columns: 1fr; }
+            .footer-main { grid-template-columns: 1fr 1fr; gap: 40px; }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .hero-title { font-size: 48px; }
+            .section-title { font-size: 36px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .footer-main { grid-template-columns: 1fr; }
+            .hero-container, .container, .footer-container, .nav-container { padding: 0 24px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo">MA'AT</div>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#boundaries" class="nav-link">Boundaries</a>
+                <a href="#contact" class="nav-link">Contact</a>
+                <a href="mailto:TheForgottenCode@gmail.com?subject=MAAT%20License%20Inquiry" class="cta-nav">Request License</a>
+            </div>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <div class="hero-eyebrow">Jury Analysis Platform</div>
+                <h1 class="hero-title">Truth Weighs<br>the Heart</h1>
+                <p class="hero-subtitle">The first court-defensible jury analysis platform.</p>
+                <p class="hero-tagline">Process forensics, not psychology. Document conditions, not predict verdicts. Built for law firms who demand truth.</p>
+                <div class="hero-buttons">
+                    <a href="mailto:TheForgottenCode@gmail.com?subject=MAAT%20License%20Inquiry" class="btn-primary">Request License</a>
+                    <a href="#features" class="btn-secondary">Learn More</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header">
+                <div class="section-eyebrow">Platform Capabilities</div>
+                <h2 class="section-title">What MA'AT Does</h2>
+                <p class="section-description">Court-safe analysis infrastructure for modern trial teams</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3 class="feature-title">Statement Consistency</h3>
+                    <p class="feature-description">Analyzes transcripts for internal coherence, contradictions, and evidence gaps. Documents what was said, not what it means.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📦</div>
+                    <h3 class="feature-title">Audit Packets</h3>
+                    <p class="feature-description">SHA-256 hash-verified, timestamped, immutable documentation. Every analysis traceable and defensible.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3 class="feature-title">Language Firewall</h3>
+                    <p class="feature-description">Blocks diagnostic and predictive language before it reaches reports. No psychological terms leak through.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔐</div>
+                    <h3 class="feature-title">Role-Based Access</h3>
+                    <p class="feature-description">Multi-tenant organization isolation with admin, attorney, analyst, and viewer roles.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚖️</div>
+                    <h3 class="feature-title">Judge Override Rules</h3>
+                    <p class="feature-description">Standing orders compile into enforcement rules. Your local court requirements built in.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📋</div>
+                    <h3 class="feature-title">Venue Analysis</h3>
+                    <p class="feature-description">Public demographic and historical data compiled for context. No individual profiling.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="not-section" id="boundaries">
+        <div class="container">
+            <div class="not-grid">
+                <div class="not-content">
+                    <h2>What MA'AT Does NOT Do</h2>
+                    <ul class="not-list">
+                        <li><span class="not-icon">❌</span> Contact jurors (hard-coded prohibition)</li>
+                        <li><span class="not-icon">❌</span> Predict verdicts</li>
+                        <li><span class="not-icon">❌</span> Psychological profiling</li>
+                        <li><span class="not-icon">❌</span> Archetype labeling</li>
+                        <li><span class="not-icon">❌</span> "Read" jurors</li>
+                        <li><span class="not-icon">❌</span> Strike recommendations</li>
+                    </ul>
+                </div>
+                <div class="not-content">
+                    <h2>Why These Boundaries?</h2>
+                    <p class="section-description" style="margin-bottom: 20px;">MA'AT exists to help trial teams organize and document — not to replace human judgment or cross ethical lines.</p>
+                    <p class="section-description">Every boundary is hard-coded at the system level. These aren't guidelines — they're walls.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer" id="contact">
+        <div class="footer-container">
+            <div class="footer-main">
+                <div class="footer-brand">
+                    <div class="footer-logo">MA'AT</div>
+                    <p class="footer-tagline">Truth weighs the heart. Court-defensible jury analysis for law firms who demand documentation over speculation.</p>
+                    <div class="footer-contact">
+                        <a href="mailto:TheForgottenCode@gmail.com">TheForgottenCode@gmail.com</a>
+                        <a href="tel:423-388-8304">423-388-8304</a>
+                        <a href="#">Jennifer Leigh West</a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Licensing</h4>
+                    <ul>
+                        <li><a href="mailto:TheForgottenCode@gmail.com?subject=Single%20Firm%20License">Single Firm License</a></li>
+                        <li><a href="mailto:TheForgottenCode@gmail.com?subject=Enterprise%20License">Enterprise License</a></li>
+                        <li><a href="mailto:TheForgottenCode@gmail.com?subject=Custom%20Integration">Custom Integration</a></li>
+                        <li><a href="mailto:TheForgottenCode@gmail.com?subject=Training%20Request">Training</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Institution</h4>
+                    <ul>
+                        <li><a href="#">The Forgotten Code Research Institute</a></li>
+                        <li><a href="#">Legal Tech Research</a></li>
+                        <li><a href="#">Court-Safe AI</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>© 2026 Jennifer Leigh West. MA'AT™ is proprietary licensed software. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
