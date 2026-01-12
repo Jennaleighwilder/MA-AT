@@ -1,6 +1,0 @@
-FOREPERSON: We should go through the evidence.
-JUROR 2: The law says we must apply the instruction. [UNRESOLVED: Exhibit 12 timeline conflicts with witness A testimony.]
-JUROR 3: I feel like it just seems off.
-JUROR 1: Judge said we must decide today.
-JUROR 4: Evidence includes Exhibit 12 and the record.
-JUROR 5: Maybe we just go with the simplest story.
